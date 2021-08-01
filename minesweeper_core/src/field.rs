@@ -37,7 +37,9 @@ impl Cell{
 }
 
 pub struct Field{
-    cells: Vec<Vec<Cell>>
+    cells: Vec<Vec<Cell>>,
+    width : usize,
+    height : usize
 }
 
 // Minesweeper errors implementation
@@ -45,6 +47,7 @@ pub struct Field{
 #[derive(Debug, Clone)]
 pub enum MinesweeperError{
     FieldCreateError(&'static str),
+    FieldError(&'static str),
     UnexpectedError(&'static str)
 }
 
@@ -52,6 +55,7 @@ impl fmt::Display for MinesweeperError{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result{
         match *self{
             MinesweeperError::FieldCreateError(err) => write!(f, "Field Create Error: {}", err),
+            MinesweeperError::FieldError(err) => write!(f, "Field error: {}", err),
             MinesweeperError::UnexpectedError(err) => write!(f, "Unexpected error: {}", err)
         }
     }
@@ -61,9 +65,17 @@ impl Error for MinesweeperError{
     fn description(&self) -> &str {
         match *self {
             MinesweeperError::FieldCreateError(err) => err,
+            MinesweeperError::FieldError(err) => err, 
             MinesweeperError::UnexpectedError(err) => err,
         }
     }
+}
+
+pub enum State{
+    Mine,
+    NotMine,
+    AlreadyOpened,
+    Flagged,
 }
 
 impl Field{
@@ -78,7 +90,9 @@ impl Field{
         }
 
         let mut field = Field{
-            cells: vec![vec![Cell::new(); width as usize]; height as usize]
+            cells: vec![vec![Cell::new(); width as usize]; height as usize],
+            width: width as usize,
+            height: height as usize
         };
         
         // Generate mines
@@ -126,11 +140,26 @@ impl Field{
         }
     }
 
-    pub fn is_mine(&self, x : usize, y : usize) -> bool{
-        self.cells[y][x].is_mine
+    pub fn is_mine(&self, x : usize, y : usize) -> Result<bool, MinesweeperError>{
+        if self.width<x+1 || self.height < y + 1{
+            return Err(MinesweeperError::FieldError("Coordinates outside the field"))
+        }
+        Ok(self.cells[y][x].is_mine)
     }
 
-    pub fn get_mines_around(&self, x : usize, y: usize) -> u8{
-        self.cells[y][x].mines_around
+    pub fn get_mines_around(&self, x : usize, y: usize) -> Result<u8, MinesweeperError>{
+        if self.width<x+1 || self.height < y + 1{
+            return Err(MinesweeperError::FieldError("Coordinates outside the field"))
+        }
+        Ok(self.cells[y][x].mines_around)
+    }
+
+    pub fn open_cell(&mut self, x: usize, y: usize) -> Result<State, MinesweeperError>{
+        if self.width<x+1 || self.height < y + 1{
+            return Err(MinesweeperError::FieldError("Coordinates outside the field"))
+        }
+        let current_cell = self.cells[y][x];
+        
+        Ok(State::AlreadyOpened)
     }
 }
